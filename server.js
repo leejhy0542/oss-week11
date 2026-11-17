@@ -12,14 +12,50 @@
 
 // P4 부터 여기 아래에 씁니다.
 import express from "express";
+import { getDaily } from "./openMeteo.js";
+import { toDays } from "./public/logic.js";
 
 const app = express();
 const port = process.env.PORT ?? 3000;
+
+const CITIES = {
+    seoul: { name: "Seoul", lat: 37.566, lon: 126.9784 },
+    daejeon: { name: "Daejeon", lat: 36.3504, lon: 127.3845 },
+    gangneung: { name: "Gangneung", lat: 37.7519, lon: 128.8761 },
+};
 
 app.use(express.static('public'));
 
 app.get("/api/health", (req,res) => {
     res.json({status: 'ok'});
+});
+
+app.get('/api/forecast', async (req, res) => {
+    const cityKey = req.query.city;
+
+  // 1. 모르는 도시이거나 city 값이 아예 없는 경우 (400 Bad Request)
+    if (!cityKey || !Object.hasOwn(CITIES, cityKey)) {
+        return res.status(400).json({ error: `Unknown city: ${cityKey}` });
+    }
+
+    const cityObj = CITIES[cityKey];
+
+    try {
+    // 2. Open-Meteo 또는 openMeteo.js에서 예보 데이터 가져오기 대기
+        const daily = await getDaily(cityObj);
+        
+        // 3. toDays 함수를 통해 하루 객체 배열로 변환
+        const days = toDays(daily);
+
+        // 4. 성공 응답 (200 OK)
+        res.json({
+        city: cityObj.name,
+        days: days
+        });
+    } catch (err) {
+        // 5. Open-Meteo 통신 실패 등 예외 발생 시 (502 Bad Gateway)
+        res.status(502).json({ error: err.message });
+    }
 });
 
 app.listen(port, (error) => {
