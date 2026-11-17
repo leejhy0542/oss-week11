@@ -10,7 +10,7 @@
 // 커밋 메시지: p1: vitest / p2: tests
 
 import { test, expect } from "vitest";
-import { toDays } from "./public/logic.js";
+import { toDays, isGoodDay, summarize, reasons } from "./public/logic.js";
 
 // 주어짐: Open-Meteo 응답의 daily 와 같은 모양으로 손으로 만든 입력.
 // 기준 30 %, 10 km/h 에서 네 가지 경우가 하루씩 들어가게 고른 값입니다(P2 의 표).
@@ -29,3 +29,43 @@ test("toDays builds one object per day", () => {
 });
 
 // P2: 여기 아래에 테스트를 추가합니다. 위의 import 줄에 필요한 함수 이름도 추가합니다.
+// 1번: 보통의 좋은 날
+test('returns true for normal good day when rain and wind are below limits', () => {
+  expect(isGoodDay(days[0], limits)).toBe(true);
+});
+
+// 2번: 경계. "이하"를 제대로 썼나
+test('returns true for boundary day when rain and wind are exactly the limits', () => {
+  expect(isGoodDay(days[1], limits)).toBe(true);
+});
+
+// 3번: 풍속만 넘어도 탈락하나
+test('returns false when only wind exceeds the limit', () => {
+  expect(isGoodDay(days[2], limits)).toBe(false);
+});
+
+// 4번: 강수만 넘어도 탈락하나
+test('returns false when only rain exceeds the limit', () => {
+  expect(isGoodDay(days[3], limits)).toBe(false);
+});
+
+// 5번: 좋은 날 수와 전체 날 수가 문장에 맞게 들어가나
+test('summarizes correct count of good days out of total days', () => {
+  expect(summarize(days, limits)).toBe('good for a run on 2 of 4 days');
+});
+
+// 6번: 빈 입력. 날이 하나도 없어도 오류 없이 문장이 나오나
+test('handles empty input gracefully without errors', () => {
+  expect(summarize([], limits)).toBe('good for a run on 0 of 0 days');
+});
+
+// 7번: 강수와 풍속을 둘 다 넘는 날의 reasons (이유가 두 개, 순서는 rain 먼저)
+test('returns both reasons with rain first when both limits are exceeded', () => {
+  const badDay = { date: 'x', max: 0, rain: 90, wind: 20 };
+  expect(reasons(badDay, limits)).toEqual(['rain', 'wind']);
+});
+
+// 8번: 경계. 기준과 같은 날은 이유가 없나
+test('returns no reasons when values are exactly at the limits', () => {
+  expect(reasons(days[1], limits)).toEqual([]);
+});
