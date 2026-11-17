@@ -15,6 +15,10 @@ import express from "express";
 import { getDaily } from "./openMeteo.js";
 import { toDays } from "./public/logic.js";
 
+if(!process.env.ADMIN_TOKEN){
+    console.error("ADMIN_TOKEN is not set. Copy .env.example to .env");
+    process.exit(1);
+}
 const app = express();
 const port = process.env.PORT ?? 3000;
 
@@ -24,10 +28,25 @@ const CITIES = {
     gangneung: { name: "Gangneung", lat: 37.7519, lon: 128.8761 },
 };
 
+const counts = {};
+
 app.use(express.static('public'));
 
 app.get("/api/health", (req,res) => {
     res.json({status: 'ok'});
+});
+
+app.get("/api/stats", (req, res) => {
+    const authHeader = req.get("Authorization");
+    const expectedToken = `Bearer ${process.env.ADMIN_TOKEN}`;
+
+    // 토큰이 없거나 일치하지 않으면 401 Unauthorized 응답
+    if (!authHeader || authHeader !== expectedToken) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // 성공 시 횟수 객체 반환
+    res.json(counts);
 });
 
 app.get('/api/forecast', async (req, res) => {
