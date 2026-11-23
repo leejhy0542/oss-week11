@@ -58,6 +58,7 @@ app.get('/api/forecast', async (req, res) => {
     }
 
     const cityObj = CITIES[cityKey];
+    counts[cityKey] = (counts[cityKey] ?? 0) + 1;
 
     try {
     // 2. Open-Meteo 또는 openMeteo.js에서 예보 데이터 가져오기 대기
